@@ -22,11 +22,13 @@ function loadData(response){
 
   google.charts.setOnLoadCallback(drawChart);
   function drawChart() {
-    var dataArray = dashboardResponseToChartsArray(response.result);
-    var dataTable = google.visualization.arrayToDataTable(dataArray);
+    var dataTable = dashboardResponseToDataTable(response.result);
     var view = new google.visualization.DataView(dataTable);
     view.setColumns([
-          18,
+        {
+          calc: getRevisedEstimate,
+          type: 'number'
+        },
         {
           calc: getPriority,
           label: 'Priority Value',
@@ -39,12 +41,13 @@ function loadData(response){
     var options = {
       title: 'data.qld.gov projects dashboards',
         hAxis : {
-          title: 'Estimated expenditure ($)',
+          title: 'Estimated expenditure ($)'
         },
         vAxis: {
-          title :'Priority (Low to Critical)'
+          title :'Priority (Low to Critical)',
         },
-      legend: 'none'
+      legend: 'none',
+      sortColumns: 0
     };
 
     var chart = new google.visualization.ScatterChart(document.getElementById('chart_div'));
@@ -55,23 +58,28 @@ function loadData(response){
     table.draw(dataTable,{showRowNumber: true, width: '100%', height: '100%'});
   }
 }
+function getRevisedEstimate(dataTable, rowNum){
+  var estimate =  dataTable.getValue(rowNum,18); // current revised estimate
+  return parseInt(estimate) || 0;
+}
+
 function getPriority(dataTable, rowNum){
   var priority = dataTable.getValue(rowNum,3); //priority
   return priorityMap[priority] || 0;
 }
+
 function getStyle(dataTable, rowNum){
   var overallStatus = dataTable.getValue(rowNum,13); //overall status
   var statusColor = statusMap[overallStatus] || '#ccc';
   return `point { size: 18; fill-color: ${statusColor}; }`
 }
 
-function dashboardResponseToChartsArray(dashboardResult){
+function dashboardResponseToDataTable(dashboardResult){
   var fields = _.map(dashboardResult.fields, function (field){
     return field.id;
   });
 
   var dataContent = _.map(dashboardResult.records, function(record){
-
     // return an array, the order of the elements corresponds to the order of fields
     var dataTableRecord = []
     _.forEach(fields, function(fieldName){
@@ -84,5 +92,5 @@ function dashboardResponseToChartsArray(dashboardResult){
   var dataArray = [];
   dataArray.push( fields);
   dataArray= dataArray.concat(dataContent);
-  return dataArray;
+  return google.visualization.arrayToDataTable(dataArray);
 }
